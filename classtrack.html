@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ClassTrack — XI-B</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  --bg:       #0a0a0f;
+  --s1:       #111118;
+  --s2:       #18181f;
+  --s3:       #202028;
+  --border:   #ffffff0d;
+  --border2:  #ffffff18;
+  --text:     #f0f0f8;
+  --sub:      #8888a0;
+  --muted:    #55556a;
+  --accent:   #6c63ff;
+  --accent2:  #8b83ff;
+  --accent-bg:#6c63ff18;
+  --green:    #22d87a;
+  --green-bg: #22d87a12;
+  --amber:    #f59e0b;
+  --amber-bg: #f59e0b12;
+  --red:      #ff5566;
+  --red-bg:   #ff556612;
+  --radius:   12px;
+  --font:     'Inter', system-ui, sans-serif;
+  --display:  'Space Grotesk', 'Inter', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;transition:opacity .25s,transform .25s;}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(16px);}
+
+/* ── HOME ── */
+#homeScreen{background:var(--bg);}
+.home-top{padding:52px 24px 28px;}
+.home-eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px;}
+.home-title{font-family:var(--display);font-size:32px;font-weight:700;line-height:1.15;color:var(--text);}
+.home-title span{color:var(--accent2);}
+.home-sub{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;}
+.home-status{display:flex;align-items:center;gap:6px;margin-top:16px;font-size:12px;color:var(--sub);}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);}
+.home-cards{padding:0 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;padding-bottom:40px;}
+.nav-card{background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:background .15s,border-color .15s;text-decoration:none;color:inherit;position:relative;overflow:hidden;}
+.nav-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-bg) 0%,transparent 60%);opacity:0;transition:opacity .2s;}
+.nav-card:active::before{opacity:1;}
+.nav-card:active{border-color:var(--accent);}
+.card-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.card-icon.purple{background:var(--accent-bg);}
+.card-icon.green{background:var(--green-bg);}
+.card-icon.amber{background:var(--amber-bg);}
+.card-icon.red{background:var(--red-bg);}
+.card-text{flex:1;}
+.card-title{font-family:var(--display);font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.card-desc{font-size:12px;color:var(--sub);line-height:1.4;}
+.card-arrow{font-size:18px;color:var(--muted);}
+.home-edit-row{padding:12px 16px 0;}
+.edit-toggle{width:100%;padding:13px;border-radius:12px;border:1px solid var(--border2);background:var(--s2);color:var(--sub);font-size:13px;font-family:var(--font);font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.edit-toggle.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent2);}
+
+/* ── INNER SCREENS ── */
+.screen-header{display:flex;align-items:center;gap:12px;padding:52px 16px 14px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;}
+.back-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border2);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sub);font-size:18px;flex-shrink:0;}
+.screen-title{font-family:var(--display);font-size:18px;font-weight:600;flex:1;}
+.screen-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;}
+
+/* ── CALENDAR SCREEN ── */
+#calScreen{background:var(--bg);}
+.cal-body{flex:1;overflow-y:auto;padding:12px 12px 80px;}
+.month-nav{display:flex;align-items:center;gap:8px;padding:8px 4px 12px;}
+.mnav-btn{background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:6px 14px;color:var(--sub);font-size:16px;cursor:pointer;}
+.month-title{font-family:var(--display);font-size:16px;font-weight:600;flex:1;text-align:center;}
+.day-labels{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
+.dlabel{text-align:center;font-size:10px;color:var(--muted);padding:4px 0;font-weight:500;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cday{border-radius:10px;background:var(--s1);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:6px 2px 5px;cursor:pointer;position:relative;min-height:44px;transition:border-color .15s;}
+.cday.empty{background:transparent;border-color:transparent;cursor:default;}
+.cday.today{border-color:var(--accent);}
+.cday.selected{background:var(--accent-bg);border-color:var(--accent);}
+.cday.holiday{background:var(--red-bg);border-color:var(--red);}
+.cday.holiday .dnum{color:var(--red);}
+.cday.exam{background:var(--amber-bg);border-color:var(--amber);}
+.cday.exam .dnum{color:var(--amber);}
+.cday.has-data::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);position:absolute;bottom:4px;right:4px;}
+.dnum{font-size:12px;font-weight:500;color:var(--text);}
+.legend{display:flex;gap:12px;padding:10px 4px 6px;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--sub);}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+.day-panel{margin-top:14px;}
+.day-hint{text-align:center;padding:32px 0;color:var(--muted);font-size:13px;}
+.day-card{background:var(--s1);border:1px solid var(--border2);border-radius:16px;overflow:visible;position:relative;}
+.day-card-top{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);}
+.day-card-title{font-family:var(--display);font-size:14px;font-weight:600;}
+.day-card-right{display:flex;align-items:center;gap:8px;}
+.type-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;}
+.badge-class{background:var(--green-bg);color:var(--green);}
+.badge-exam{background:var(--amber-bg);color:var(--amber);}
+.badge-holiday{background:var(--red-bg);color:var(--red);}
+.three-dot{background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;}
+.dropdown{position:absolute;right:10px;top:44px;background:var(--s3);border:1px solid var(--border2);border-radius:12px;z-index:50;min-width:185px;box-shadow:0 8px 32px rgba(0,0,0,.6);overflow:hidden;}
+.dd-item{padding:12px 16px;font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:active{background:var(--s2);}
+.dd-item.warn{color:var(--amber);}
+.dd-item.danger{color:var(--red);}
+.periods-row{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid var(--border);scrollbar-width:none;}
+.periods-row::-webkit-scrollbar{display:none;}
+.per-pill{flex-shrink:0;font-size:11px;padding:4px 10px;border-radius:20px;background:var(--s2);border:1px solid var(--border2);color:var(--sub);font-weight:500;}
+.per-pill.practical{background:#1e1533;border-color:#7c3aed44;color:#a78bfa;}
+.notes-area{padding:14px 16px;}
+.sub-note{margin-bottom:14px;}
+.sub-note:last-child{margin-bottom:0;}
+.sub-label{font-size:11px;font-weight:600;letter-spacing:.04em;margin-bottom:6px;display:flex;align-items:center;gap:7px;text-transform:uppercase;}
+.sub-label-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sub-label-edit{margin-left:auto;font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--accent2);cursor:pointer;font-family:var(--font);}
+.note-text{font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:var(--s2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);}
+.add-note-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.add-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px dashed var(--border2);background:transparent;color:var(--sub);cursor:pointer;font-family:var(--font);}
+.no-notes-txt{font-size:13px;color:var(--muted);text-align:center;padding:20px 0;}
+.chapters-started{padding:12px 16px;border-top:1px solid var(--border);}
+.section-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.ch-started-list{display:flex;flex-direction:column;gap:5px;}
+.ch-started-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:10px;border:1px solid var(--border);}
+.ch-tag{font-size:10px;padding:2px 7px;border-radius:20px;flex-shrink:0;font-weight:600;}
+.ch-name-txt{font-size:13px;flex:1;}
+.ch-del{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0;}
+.empty-day{text-align:center;padding:24px 16px;}
+.empty-icon{font-size:28px;margin-bottom:8px;}
+.empty-title{font-family:var(--display);font-size:15px;font-weight:600;}
+.empty-sub{font-size:12px;color:var(--sub);margin-top:5px;}
+.exam-area{padding:14px 16px;}
+.exam-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.exam-title{font-size:13px;font-weight:600;color:var(--amber);}
+.upload-btn{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid var(--amber);background:transparent;color:var(--amber);cursor:pointer;font-family:var(--font);}
+.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px;}
+.photo-thumb{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--amber);aspect-ratio:3/4;cursor:pointer;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-pg{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:white;font-size:10px;padding:4px 6px;text-align:center;}
+.photo-del{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.7);border:none;border-radius:50%;width:22px;height:22px;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.upload-zone{border:2px dashed var(--amber);border-radius:12px;padding:24px;text-align:center;cursor:pointer;margin-bottom:10px;}
+.upload-zone-t{font-size:13px;color:var(--amber);margin-top:8px;font-weight:500;}
+.upload-zone-s{font-size:11px;color:var(--sub);margin-top:3px;}
+.exam-note-lbl{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
+.exam-note-edit{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--amber);background:transparent;color:var(--amber);cursor:pointer;font-family:var(--font);}
+
+/* ── SYLLABUS SCREEN ── */
+#syllabusScreen{background:var(--bg);}
+.syllabus-body{flex:1;overflow-y:auto;padding:0 0 40px;}
+.sub-section{border-bottom:1px solid var(--border);}
+.sub-section-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;position:sticky;top:0;background:var(--bg);z-index:2;}
+.sub-section-name{font-family:var(--display);font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px;}
+.sub-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.sub-progress-txt{font-size:12px;color:var(--sub);}
+.prog-bar{height:3px;background:var(--border2);border-radius:2px;margin:0 16px 12px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s;}
+.ch-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--border);}
+.ch-checkbox{width:20px;height:20px;border:1.5px solid var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;}
+.ch-checkbox.done{background:var(--green);border-color:var(--green);}
+.ch-checkbox.locked{cursor:default;opacity:.5;}
+.ch-checkbox-tick{font-size:11px;color:white;font-weight:700;}
+.ch-row-name{font-size:13px;flex:1;line-height:1.35;}
+.ch-row-name.done{text-decoration:line-through;color:var(--muted);}
+
+/* ── CHAPTER STUDIED SCREEN ── */
+#studiedScreen{background:var(--bg);}
+.studied-body{flex:1;overflow-y:auto;padding:12px 12px 40px;}
+.studied-month-nav{display:flex;align-items:center;gap:8px;padding:8px 4px 14px;}
+.studied-entries{display:flex;flex-direction:column;gap:8px;}
+.studied-entry{background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;}
+.studied-date{font-size:11px;color:var(--sub);font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.studied-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.studied-chip{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:500;}
+.no-studied{text-align:center;padding:40px 16px;color:var(--muted);font-size:13px;}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;z-index:300;}
+.modal{background:var(--s2);border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:8px 18px 36px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 16px;}
+.modal h3{font-family:var(--display);font-size:16px;font-weight:600;margin-bottom:14px;}
+.modal label{font-size:11px;color:var(--sub);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.modal input,.modal textarea,.modal select{width:100%;font-size:14px;padding:11px 13px;border:1px solid var(--border2);border-radius:10px;background:var(--s1);color:var(--text);margin-bottom:10px;font-family:var(--font);outline:none;}
+.modal input:focus,.modal textarea:focus,.modal select:focus{border-color:var(--accent);}
+.modal textarea{resize:vertical;min-height:90px;}
+.mbtns{display:flex;gap:8px;margin-top:6px;}
+.mbtns button{flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);}
+.bcnl{background:var(--s1);color:var(--sub);}
+.bsave{background:var(--accent);color:white;}
+.bwarn{background:var(--amber);color:#000;}
+.perr{font-size:12px;color:var(--red);margin-bottom:8px;}
+.lockout-msg{font-size:13px;color:var(--red);text-align:center;padding:10px 0 4px;}
+
+/* ── LIGHTBOX ── */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:400;}
+.lb-img{max-width:96%;max-height:72vh;object-fit:contain;border-radius:8px;}
+.lb-nav{display:flex;gap:14px;margin-top:14px;}
+.lb-btn{background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:9px 20px;color:white;font-size:14px;cursor:pointer;font-family:var(--font);}
+.lb-close{position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;color:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.lb-lbl{color:rgba(255,255,255,.45);font-size:12px;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<input type="file" id="fileIn" accept="image/*" multiple style="display:none" onchange="handleFiles(event)">
+<div id="lightboxEl"></div>
+<div id="modalRoot"></div>
+
+<!-- ═══ HOME SCREEN ═══ -->
+<div class="screen" id="homeScreen">
+  <div class="home-top">
+    <div class="home-eyebrow">Science · Class XI-B</div>
+    <div class="home-title">Class<span>Track</span></div>
+    <div class="home-sub">Your group's shared class diary — notes, chapters & exams in one place.</div>
+    <div class="home-status"><div class="status-dot" id="statusDot"></div><span id="statusTxt">Connecting...</span></div>
+  </div>
+
+  <div class="home-edit-row">
+    <button class="edit-toggle" id="editToggle" onclick="openEdit()">🔒 Edit mode — locked</button>
+  </div>
+
+  <div style="height:14px;flex-shrink:0;"></div>
+
+  <div class="home-cards">
+    <div class="nav-card" onclick="goTo('calScreen')">
+      <div class="card-icon purple">📅</div>
+      <div class="card-text">
+        <div class="card-title">Calendar</div>
+        <div class="card-desc">Daily notes, exam papers and holidays</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </div>
+
+    <div class="nav-card" onclick="goTo('syllabusScreen')">
+      <div class="card-icon green">📚</div>
+      <div class="card-text">
+        <div class="card-title">Syllabus</div>
+        <div class="card-desc">Mark chapters as complete — track your progress</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </div>
+
+    <div class="nav-card" onclick="goTo('studiedScreen')">
+      <div class="card-icon amber">🗒️</div>
+      <div class="card-text">
+        <div class="card-title">Chapters Studied</div>
+        <div class="card-desc">See which chapters were started on which day</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CALENDAR SCREEN ═══ -->
+<div class="screen hidden" id="calScreen">
+  <div class="screen-header">
+    <div class="back-btn" onclick="goHome()">‹</div>
+    <div class="screen-title">Calendar</div>
+  </div>
+  <div class="cal-body">
+    <div class="month-nav">
+      <button class="mnav-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="month-title" id="monthTitle"></div>
+      <button class="mnav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="day-labels">
+      <div class="dlabel">S</div><div class="dlabel">M</div><div class="dlabel">T</div>
+      <div class="dlabel">W</div><div class="dlabel">T</div><div class="dlabel">F</div><div class="dlabel">S</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Has data</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>Exam</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>Holiday</div>
+    </div>
+    <div class="day-panel" id="dayPanel"><div class="day-hint">Tap a date to view</div></div>
+  </div>
+</div>
+
+<!-- ═══ SYLLABUS SCREEN ═══ -->
+<div class="screen hidden" id="syllabusScreen">
+  <div class="screen-header">
+    <div class="back-btn" onclick="goHome()">‹</div>
+    <div class="screen-title">Syllabus</div>
+    <span id="sylEditHint" style="font-size:11px;color:var(--sub);"></span>
+  </div>
+  <div class="syllabus-body" id="syllabusList"></div>
+</div>
+
+<!-- ═══ STUDIED SCREEN ═══ -->
+<div class="screen hidden" id="studiedScreen">
+  <div class="screen-header">
+    <div class="back-btn" onclick="goHome()">‹</div>
+    <div class="screen-title">Chapters Studied</div>
+  </div>
+  <div class="studied-body">
+    <div class="studied-month-nav">
+      <button class="mnav-btn" onclick="changeStudiedMonth(-1)">‹</button>
+      <div class="month-title" id="studiedMonthTitle"></div>
+      <button class="mnav-btn" onclick="changeStudiedMonth(1)">›</button>
+    </div>
+    <div id="studiedList"></div>
+  </div>
+</div>
+
+<script>
+// ═══ CONFIG ═══
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAhkiIog4l43aFyyreXD_HaoF3H3_bqrPM",
+  authDomain: "classtrack-2026-27.firebaseapp.com",
+  databaseURL: "https://classtrack-2026-27-default-rtdb.firebaseio.com",
+  projectId: "classtrack-2026-27",
+  storageBucket: "classtrack-2026-27.firebasestorage.app",
+  messagingSenderId: "367988685226",
+  appId: "1:367988685226:web:8264bc6d7335f957e3d3d3"
+};
+const PASSWORD_HASH = "b8bdd0718d74b46bcdf99e355b5d0f8465a122a22723ce64e95cff88ecfa29b5";
+
+// ═══ DATA ═══
+const SUBS = ["Physics","Chemistry","Maths","Economics","CS"];
+const SUB_COLORS = {Physics:"#6c63ff",Chemistry:"#22d87a",Maths:"#f97316",Economics:"#a78bfa",CS:"#f59e0b"};
+const CHAPTERS = {
+  Physics:["Units & Measurement","Motion in Straight Line","Motion in a Plane","Laws of Motion","Work, Energy & Power","Gravitation","Mechanical Properties of Solids","Mechanical Properties of Fluids","Thermal Properties","Thermodynamics","Kinetic Theory","Oscillations","Waves"],
+  Chemistry:["Basic Concepts","Atomic Structure","Classification of Elements","Chemical Bonding","States of Matter","Thermodynamics","Equilibrium","Redox Reactions","Hydrogen","s-Block Elements","p-Block (Gr 13-14)","Hydrocarbons","Environmental Chemistry"],
+  Maths:["Sets","Relations and Functions","Trigonometric Functions","Complex Numbers","Linear Inequalities","Permutations & Combinations","Binomial Theorem","Sequence and Series","Straight Lines","Conic Sections","3D Geometry","Limits and Derivatives","Statistics","Probability"],
+  Economics:["Introduction","Consumer Behaviour","Demand","Elasticity of Demand","Production Function","Cost","Revenue","Supply","Market Equilibrium","National Income","Money and Banking","Balance of Payments"],
+  CS:["Computer Fundamentals","Number Systems","Boolean Logic","Problem Solving","Python Basics","Data Types","Control Flow","Functions","Lists & Tuples","Dictionaries","File Handling","SQL Basics","Networking"]
+};
+const TT = {1:["Eng","Chem","Comp/Eco","Phy","Maths/Bio","Chem"],2:["Maths/Bio","Comp/Eco","Phy","Eng","Chem","Phy"],3:["Eng","Phy","Practical","Practical","Chem","Maths/Bio"],4:["Practical","Practical","Chem","Phy","Comp/Eco","Maths/Bio"],5:["Phy","Maths/Bio","Chem","Comp/Eco","Maths/Bio","Eng"],6:["Maths/Bio","Chem","Eng","Phy","Chem","Maths/Bio"]};
+const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+let curM=new Date().getMonth(),curY=new Date().getFullYear();
+let studiedM=new Date().getMonth(),studiedY=new Date().getFullYear();
+let selDate=null,editMode=false,ddOpen=false,lbIdx=0;
+let data={},db=null,dbRef=null;
+let failCount=parseInt(sessionStorage.getItem('ct_fails')||'0');
+let lockedUntil=parseInt(sessionStorage.getItem('ct_locked')||'0');
+let editTimer=null;
+const today=new Date();
+const fmt=(y,m,d)=>y+'-'+(m+1).toString().padStart(2,'0')+'-'+d.toString().padStart(2,'0');
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ═══ FIREBASE ═══
+function initFirebase(){
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db=firebase.database();
+    dbRef=db.ref('classtrack');
+    setStatus('syncing');
+    dbRef.on('value',snap=>{
+      data=snap.val()||{};
+      setStatus('live');
+      renderCal();
+      if(selDate)renderDay();
+      if(document.getElementById('syllabusScreen').classList.contains('hidden')===false) renderSyllabus();
+      if(document.getElementById('studiedScreen').classList.contains('hidden')===false) renderStudied();
+    },()=>setStatus('error'));
+  }catch(e){
+    setStatus('error');
+    try{data=JSON.parse(localStorage.getItem('ct_demo')||'{}');}catch(e){}
+    renderCal();
+  }
+}
+function saveData(path,value){
+  if(db) db.ref('classtrack/'+path).set(value).catch(()=>{});
+  else try{localStorage.setItem('ct_demo',JSON.stringify(data));}catch(e){}
+}
+function setStatus(s){
+  const dot=document.getElementById('statusDot');
+  const txt=document.getElementById('statusTxt');
+  if(s==='live'){dot.className='status-dot live';txt.textContent='Live — syncing across all devices';}
+  else if(s==='syncing'){dot.className='status-dot';txt.textContent='Connecting...';}
+  else{dot.className='status-dot';txt.textContent='Offline — check connection';}
+}
+
+// ═══ NAVIGATION ═══
+function goTo(id){
+  document.getElementById('homeScreen').classList.add('hidden');
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='calScreen') renderCal();
+  if(id==='syllabusScreen') renderSyllabus();
+  if(id==='studiedScreen') renderStudied();
+}
+function goHome(){
+  ['calScreen','syllabusScreen','studiedScreen'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById('homeScreen').classList.remove('hidden');
+  ddOpen=false;
+}
+
+// ═══ CALENDAR ═══
+function renderCal(){
+  document.getElementById('monthTitle').textContent=MONTHS[curM]+' '+curY;
+  const g=document.getElementById('calGrid');g.innerHTML='';
+  const first=new Date(curY,curM,1).getDay(),total=new Date(curY,curM+1,0).getDate();
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='cday empty';g.appendChild(e);}
+  for(let d=1;d<=total;d++){
+    const dk=fmt(curY,curM,d),dd=data[dk]||{};
+    const el=document.createElement('div');
+    let cls='cday';
+    if(d===today.getDate()&&curM===today.getMonth()&&curY===today.getFullYear()) cls+=' today';
+    if(dd.type==='holiday') cls+=' holiday';
+    else if(dd.type==='exam') cls+=' exam';
+    const hasData=(dd.notes&&Object.values(dd.notes).some(v=>v))||(dd.photos&&dd.photos.length)||(dd.chapters&&dd.chapters.length);
+    if(hasData) cls+=' has-data';
+    if(selDate===dk) cls+=' selected';
+    el.className=cls;
+    el.innerHTML='<span class="dnum">'+d+'</span>';
+    el.onclick=()=>selectDay(dk);
+    g.appendChild(el);
+  }
+}
+function selectDay(dk){selDate=dk;ddOpen=false;renderCal();renderDay();}
+function changeMonth(d){curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}selDate=null;renderCal();document.getElementById('dayPanel').innerHTML='<div class="day-hint">Tap a date to view</div>';}
+
+function renderDay(){
+  const panel=document.getElementById('dayPanel');
+  if(!selDate){panel.innerHTML='<div class="day-hint">Tap a date to view</div>';return;}
+  const dd=data[selDate]||{},dow=new Date(selDate+'T00:00:00').getDay();
+  const d=new Date(selDate+'T00:00:00'),lbl=DAYS[dow]+', '+d.getDate()+' '+MONTHS[d.getMonth()];
+  const isSun=dow===0,dtype=dd.type||'class';
+  let badge=dtype==='holiday'?'<span class="type-badge badge-holiday">Holiday</span>':dtype==='exam'?'<span class="type-badge badge-exam">Exam</span>':'<span class="type-badge badge-class">Class</span>';
+  let ddHtml='';
+  if(ddOpen&&editMode&&!isSun){
+    ddHtml='<div class="dropdown" id="dd" onclick="event.stopPropagation()">';
+    ddHtml+=dtype==='exam'?'<div class="dd-item warn" onclick="setType(\'class\')">✕ Remove exam</div>':'<div class="dd-item warn" onclick="setType(\'exam\')">📝 Mark as exam</div>';
+    ddHtml+=dtype==='holiday'?'<div class="dd-item danger" onclick="setType(\'class\')">✕ Remove holiday</div>':'<div class="dd-item danger" onclick="setType(\'holiday\')">🏖️ Mark as holiday</div>';
+    ddHtml+='<div class="dd-item" onclick="openAddChapter()">📖 Chapter started</div>';
+    ddHtml+='</div>';
+  }
+  let html='<div class="day-card"><div class="day-card-top"><span class="day-card-title">'+lbl+'</span><div class="day-card-right">'+badge+(editMode&&!isSun?'<button class="three-dot" onclick="toggleDd(event)">⋮</button>':'')+'</div></div>'+ddHtml;
+  if(isSun){html+='<div class="empty-day"><div class="empty-icon">☀️</div><div class="empty-title" style="color:var(--sub)">Sunday</div><div class="empty-sub">No school today</div></div>';}
+  else if(dtype==='holiday'){html+='<div class="empty-day"><div class="empty-icon">🏖️</div><div class="empty-title" style="color:var(--red)">Holiday</div><div class="empty-sub">No classes today</div></div>';}
+  else if(dtype==='exam'){html+=buildExam(dd);}
+  else{
+    const periods=TT[dow]||[];
+    if(periods.length){html+='<div class="periods-row">';periods.forEach((p,i)=>{html+='<div class="per-pill'+(p==='Practical'?' practical':'')+'"><span style="opacity:.4;font-size:10px;">'+(i+1)+'.</span> '+p+'</div>';});html+='</div>';}
+    const notes=dd.notes||{};
+    const hasAny=SUBS.some(s=>notes[s]);
+    html+='<div class="notes-area">';
+    if(hasAny){SUBS.forEach(s=>{if(!notes[s])return;html+='<div class="sub-note"><div class="sub-label"><div class="sub-label-dot" style="background:'+SUB_COLORS[s]+'"></div>'+s+(editMode?'<button class="sub-label-edit" onclick="openNote(\''+s+'\')">Edit</button>':'')+'</div><div class="note-text">'+esc(notes[s])+'</div></div>';});}
+    else{html+='<div class="no-notes-txt">'+(editMode?'No notes yet — add below':'No notes for this day')+'</div>';}
+    if(editMode){const missing=SUBS.filter(s=>!notes[s]);if(missing.length){html+='<div class="add-note-row">'+missing.map(s=>'<button class="add-chip" onclick="openNote(\''+s+'\')">+ '+s+'</button>').join('')+'</div>';}}
+    html+='</div>';
+    const chs=dd.chapters||[];
+    if(chs.length){html+='<div class="chapters-started"><div class="section-label">Chapters started today</div><div class="ch-started-list">'+chs.map((ch,i)=>'<div class="ch-started-item"><span class="ch-tag" style="background:'+SUB_COLORS[ch.sub]+'22;color:'+SUB_COLORS[ch.sub]+';border:1px solid '+SUB_COLORS[ch.sub]+'33;">'+ch.sub+'</span><span class="ch-name-txt">'+esc(ch.name)+'</span>'+(editMode?'<button class="ch-del" onclick="delChapter('+i+')">✕</button>':'')+'</div>').join('')+'</div></div>';}
+  }
+  html+='</div>';
+  panel.innerHTML=html;
+}
+
+function buildExam(dd){
+  const photos=dd.photos||[];
+  let html='<div class="exam-area"><div class="exam-head"><span class="exam-title">📝 Question Paper</span>'+(editMode?'<button class="upload-btn" onclick="triggerUpload()">📷 Upload</button>':'')+'</div>';
+  if(photos.length){html+='<div class="photo-grid">'+photos.map((src,i)=>'<div class="photo-thumb" onclick="openLb('+i+')"><img src="'+src+'" alt="Page '+(i+1)+'"><div class="photo-pg">Page '+(i+1)+'</div>'+(editMode?'<button class="photo-del" onclick="event.stopPropagation();delPhoto('+i+')">✕</button>':'')+' </div>').join('')+'</div><div style="font-size:11px;color:var(--amber);opacity:.7;margin-bottom:10px;">Tap any page to zoom</div>';}
+  else if(editMode){html+='<div class="upload-zone" onclick="triggerUpload()"><div style="font-size:28px">📄</div><div class="upload-zone-t">Upload question paper</div><div class="upload-zone-s">Select multiple pages at once</div></div>';}
+  else{html+='<div style="text-align:center;padding:16px 0;color:var(--sub);font-size:13px;">No paper uploaded yet</div>';}
+  const en=dd.examNote||'';
+  html+='<div class="exam-note-lbl"><span>Notes / Syllabus</span>'+(editMode?'<button class="exam-note-edit" onclick="openExamNote()">✎ Edit</button>':'')+'</div>';
+  html+=en?'<div class="note-text">'+esc(en)+'</div>':'<div style="font-size:12px;color:var(--amber);opacity:.6;">'+(editMode?'Add which chapters, total marks, duration...':'Nothing added')+'</div>';
+  html+='</div>';
+  return html;
+}
+
+// ═══ SYLLABUS ═══
+function renderSyllabus(){
+  const list=document.getElementById('syllabusList');
+  const prog=data['progress']||{};
+  const hint=document.getElementById('sylEditHint');
+  hint.textContent=editMode?'✎ editing':'🔒 view only';
+  let html='';
+  SUBS.forEach(sub=>{
+    const color=SUB_COLORS[sub];
+    const chs=CHAPTERS[sub];
+    const done=chs.filter((_,i)=>(prog[sub]||{})[i]).length;
+    const pct=Math.round(done/chs.length*100);
+    html+='<div class="sub-section"><div class="sub-section-head"><span class="sub-section-name"><div class="sub-dot" style="background:'+color+'"></div>'+sub+'</span><span class="sub-progress-txt">'+done+'/'+chs.length+' · '+pct+'%</span></div>';
+    html+='<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+color+'"></div></div>';
+    chs.forEach((ch,i)=>{
+      const isDone=(prog[sub]||{})[i]||false;
+      html+='<div class="ch-row"><div class="ch-checkbox'+(isDone?' done':'')+(editMode?'':' locked')+'" onclick="toggleProg(\''+sub+'\','+i+')">'+(isDone?'<span class="ch-checkbox-tick">✓</span>':'')+'</div><span class="ch-row-name'+(isDone?' done':'')+'">'+ch+'</span></div>';
+    });
+    html+='</div>';
+  });
+  list.innerHTML=html;
+}
+function toggleProg(sub,i){
+  if(!editMode){showModal('<div class="modal-handle"></div><h3>🔒 Locked</h3><p style="font-size:13px;color:var(--sub);margin-bottom:14px;">Unlock edit mode from the home screen to mark chapters.</p><div class="mbtns"><button class="bcnl" onclick="cModal()">Cancel</button><button class="bsave" onclick="cModal();goHome();openEdit()">Unlock</button></div>');return;}
+  if(!data['progress'])data['progress']={};
+  if(!data['progress'][sub])data['progress'][sub]={};
+  data['progress'][sub][i]=!data['progress'][sub][i];
+  saveData('progress',data['progress']);
+  renderSyllabus();
+}
+
+// ═══ CHAPTERS STUDIED ═══
+function renderStudied(){
+  document.getElementById('studiedMonthTitle').textContent=MONTHS[studiedM]+' '+studiedY;
+  const list=document.getElementById('studiedList');
+  const entries=[];
+  const first=new Date(studiedY,studiedM,1),last=new Date(studiedY,studiedM+1,0);
+  for(let d=new Date(first);d<=last;d.setDate(d.getDate()+1)){
+    const dk=fmt(d.getFullYear(),d.getMonth(),d.getDate());
+    const dd=data[dk]||{};
+    if(dd.chapters&&dd.chapters.length){
+      entries.push({dk,dow:d.getDay(),date:d.getDate(),chs:dd.chapters});
+    }
+  }
+  if(!entries.length){list.innerHTML='<div class="no-studied">No chapters recorded this month</div>';return;}
+  list.innerHTML='<div class="studied-entries">'+entries.reverse().map(e=>{
+    const lbl=DAYS[e.dow]+', '+e.date+' '+MONTHS[studiedM];
+    const chips=e.chs.map(ch=>'<span class="studied-chip" style="background:'+SUB_COLORS[ch.sub]+'18;color:'+SUB_COLORS[ch.sub]+';border:1px solid '+SUB_COLORS[ch.sub]+'33;">'+ch.sub+' · '+ch.name+'</span>').join('');
+    return '<div class="studied-entry"><div class="studied-date">📅 '+lbl+'</div><div class="studied-chips">'+chips+'</div></div>';
+  }).join('')+'</div>';
+}
+function changeStudiedMonth(d){studiedM+=d;if(studiedM>11){studiedM=0;studiedY++;}if(studiedM<0){studiedM=11;studiedY--;}renderStudied();}
+
+// ═══ ACTIONS ═══
+function toggleDd(e){e.stopPropagation();ddOpen=!ddOpen;renderDay();}
+document.addEventListener('click',()=>{if(ddOpen){ddOpen=false;renderDay();}});
+function setType(t){if(!editMode||!selDate)return;ddOpen=false;if(!data[selDate])data[selDate]={};data[selDate].type=(data[selDate].type===t)?'class':t;saveData(selDate+'/type',data[selDate].type);renderCal();renderDay();}
+function openNote(sub){if(!editMode||!selDate)return;ddOpen=false;const ex=((data[selDate]||{}).notes||{})[sub]||'';showModal('<div class="modal-handle"></div><h3><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+SUB_COLORS[sub]+';margin-right:8px;vertical-align:-1px;"></span>'+sub+' Notes</h3><label>What was taught today?</label><textarea id="ntxt" placeholder="Topics, page numbers, homework...">'+esc(ex)+'</textarea><div class="mbtns"><button class="bcnl" onclick="cModal()">Cancel</button><button class="bsave" onclick="saveNote(\''+sub+'\')">Save</button></div>');}
+function saveNote(sub){const t=document.getElementById('ntxt').value.trim();if(!data[selDate])data[selDate]={};if(!data[selDate].notes)data[selDate].notes={};if(t)data[selDate].notes[sub]=t;else delete data[selDate].notes[sub];saveData(selDate+'/notes',data[selDate].notes);cModal();renderDay();renderCal();}
+function openAddChapter(){if(!editMode||!selDate)return;ddOpen=false;const subOpts=SUBS.map(s=>'<option value="'+s+'">'+s+'</option>').join('');showModal('<div class="modal-handle"></div><h3>📖 Chapter Started Today</h3><label>Subject</label><select id="csub" onchange="updateChOpts()"><option value="">— pick subject —</option>'+subOpts+'</select><label>Chapter</label><select id="cch"><option value="">— pick subject first —</option></select><div class="mbtns"><button class="bcnl" onclick="cModal()">Cancel</button><button class="bsave" onclick="saveChapter()">Add</button></div>');}
+function updateChOpts(){const sub=document.getElementById('csub').value;const cc=document.getElementById('cch');if(!sub){cc.innerHTML='<option value="">— pick subject first —</option>';return;}cc.innerHTML=CHAPTERS[sub].map((ch,i)=>'<option value="'+i+'">'+ch+'</option>').join('');}
+function saveChapter(){const sub=document.getElementById('csub').value;const idx=document.getElementById('cch').value;if(!sub||idx==='')return;if(!data[selDate])data[selDate]={};if(!data[selDate].chapters)data[selDate].chapters=[];const name=CHAPTERS[sub][parseInt(idx)];if(!data[selDate].chapters.find(c=>c.sub===sub&&c.name===name))data[selDate].chapters.push({sub,name});saveData(selDate+'/chapters',data[selDate].chapters);cModal();renderDay();renderCal();}
+function delChapter(i){if(!editMode||!selDate)return;data[selDate].chapters.splice(i,1);saveData(selDate+'/chapters',data[selDate].chapters);renderDay();renderCal();}
+function triggerUpload(){if(!editMode||!selDate)return;document.getElementById('fileIn').click();}
+function handleFiles(e){const files=Array.from(e.target.files);if(!files.length||!selDate)return;if(!data[selDate])data[selDate]={};if(!data[selDate].photos)data[selDate].photos=[];let done=0;files.forEach(f=>{const r=new FileReader();r.onload=ev=>{data[selDate].photos.push(ev.target.result);saveData(selDate+'/photos',data[selDate].photos);done++;if(done===files.length)renderDay();};r.readAsDataURL(f);});e.target.value='';}
+function delPhoto(i){if(!editMode||!selDate)return;data[selDate].photos.splice(i,1);saveData(selDate+'/photos',data[selDate].photos);renderDay();}
+function openLb(i){const p=(data[selDate]||{}).photos||[];lbIdx=i;document.getElementById('lightboxEl').innerHTML='<div class="lightbox"><button class="lb-close" onclick="closeLb()">✕</button><img class="lb-img" id="lbImg" src="'+p[lbIdx]+'" alt="Paper"><div class="lb-lbl" id="lblbl">Page '+(lbIdx+1)+' of '+p.length+'</div><div class="lb-nav"><button class="lb-btn" onclick="moveLb(-1)">‹ Prev</button><button class="lb-btn" onclick="moveLb(1)">Next ›</button></div></div>';}
+function moveLb(d){const p=(data[selDate]||{}).photos||[];lbIdx=(lbIdx+d+p.length)%p.length;document.getElementById('lbImg').src=p[lbIdx];document.getElementById('lblbl').textContent='Page '+(lbIdx+1)+' of '+p.length;}
+function closeLb(){document.getElementById('lightboxEl').innerHTML='';}
+function openExamNote(){if(!editMode||!selDate)return;const ex=(data[selDate]||{}).examNote||'';showModal('<div class="modal-handle"></div><h3>Exam Notes</h3><textarea id="entxt" placeholder="Chapters tested, total marks, duration...">'+esc(ex)+'</textarea><div class="mbtns"><button class="bcnl" onclick="cModal()">Cancel</button><button class="bwarn" onclick="saveExamNote()">Save</button></div>');}
+function saveExamNote(){const t=document.getElementById('entxt').value.trim();if(!data[selDate])data[selDate]={};data[selDate].examNote=t;saveData(selDate+'/examNote',t||null);cModal();renderDay();}
+
+// ═══ MODAL ═══
+function showModal(inner){document.getElementById('modalRoot').innerHTML='<div class="modal-bg" onclick="cModal(event)"><div class="modal" onclick="event.stopPropagation()">'+inner+'</div></div>';}
+function cModal(e){if(!e||e.target.classList.contains('modal-bg'))document.getElementById('modalRoot').innerHTML='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cModal();if(e.key==='Enter'&&e.target.id==='pwin')chkPw();});
+
+// ═══ AUTH ═══
+async function sha256(str){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function openEdit(){
+  if(editMode){editMode=false;clearTimeout(editTimer);updateEditUI();renderDay();renderSyllabus();return;}
+  const now=Date.now();
+  if(lockedUntil>now){const s=Math.ceil((lockedUntil-now)/1000);showModal('<div class="modal-handle"></div><h3>🔒 Locked out</h3><div class="lockout-msg">Too many wrong attempts.<br>Try again in '+s+' seconds.</div><div class="mbtns"><button class="bsave" onclick="cModal()">OK</button></div>');return;}
+  showModal('<div class="modal-handle"></div><h3>🔒 Enter Password</h3><div id="perr" class="perr"></div><label>Password</label><input type="password" id="pwin" placeholder="Your password" autocomplete="current-password"><div class="mbtns"><button class="bcnl" onclick="cModal()">Cancel</button><button class="bsave" onclick="chkPw()">Unlock</button></div>');
+  setTimeout(()=>{const el=document.getElementById('pwin');if(el)el.focus();},100);
+}
+async function chkPw(){
+  const val=document.getElementById('pwin').value;
+  const hash=await sha256(val);
+  if(hash===PASSWORD_HASH){
+    failCount=0;sessionStorage.setItem('ct_fails','0');sessionStorage.removeItem('ct_locked');
+    editMode=true;updateEditUI();cModal();renderDay();renderSyllabus();
+    resetEditTimer();document.addEventListener('click',resetEditTimer);
+  }else{
+    failCount++;sessionStorage.setItem('ct_fails',failCount);
+    if(failCount>=3){lockedUntil=Date.now()+5*60*1000;sessionStorage.setItem('ct_locked',lockedUntil);document.getElementById('perr').textContent='❌ Locked for 5 minutes after 3 wrong attempts.';}
+    else document.getElementById('perr').textContent='❌ Wrong password — '+(3-failCount)+' attempt(s) left.';
+  }
+}
+function resetEditTimer(){clearTimeout(editTimer);editTimer=setTimeout(()=>{editMode=false;updateEditUI();renderDay();renderSyllabus();},30*60*1000);}
+function updateEditUI(){
+  const btn=document.getElementById('editToggle');
+  if(editMode){btn.className='edit-toggle on';btn.textContent='🔓 Edit mode — unlocked · Tap to lock';}
+  else{btn.className='edit-toggle';btn.textContent='🔒 Edit mode — locked';}
+  const hint=document.getElementById('sylEditHint');
+  if(hint) hint.textContent=editMode?'✎ editing':'🔒 view only';
+}
+
+// ═══ START ═══
+initFirebase();
+</script>
+</body>
+</html>
